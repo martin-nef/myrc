@@ -1,1 +1,23 @@
+if [ -n "${ZSH_VERSION:-}" ]; then
+  MYRC_SHELL=zsh
+elif [ -n "${BASH_VERSION:-}" ]; then
+  MYRC_SHELL=bash
+elif [ -n "${MYRC_DIR:-}" ]; then
+  MYRC_SHELL=sh
+else
+  echo "myrc: cannot auto-detect script path under this shell." >&2
+  echo "  Set MYRC_DIR before sourcing, e.g.:" >&2
+  echo "    MYRC_DIR=/path/to/myrc . \"\$MYRC_DIR/.myrc\"" >&2
+  return 1 2>/dev/null || exit 1
+fi
 
+case "$MYRC_SHELL" in
+  zsh)  MYRC_DIR="${${(%):-%x}:A:h}" ;;
+  bash) MYRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)" ;;
+esac
+
+for rc in "$MYRC_DIR"/.rc-*; do
+  [ -r "$rc" ] && . "$rc"
+done
+
+unset rc
