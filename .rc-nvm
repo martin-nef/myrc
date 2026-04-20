@@ -1,11 +1,12 @@
 # TODO: add support for bash & Ubuntu/Debian install paths
 
 [ "$MYRC_SHELL" = "zsh" ] || return
-command -v nvm >/dev/null || return
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"
 [ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
+
+command -v nvm >/dev/null || return
 
 # auto 'nvm use' on dir with .nvmrc
 autoload -U add-zsh-hook
