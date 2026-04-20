@@ -1,18 +1,13 @@
-# TODO: check for iTerm2 instead, since it's specific to that.
-
-# Assumption zsh = osx = using iTerm2
-if [ "$MYRC_SHELL" != "zsh" ]; then
-    return 0
-fi
+[ "$TERM_PROGRAM" = "iTerm.app" ] || return
+[ "$MYRC_SHELL" = "zsh" ] || return
 
 # iterm shell integration
-test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
+test -e "${HOME}/.iterm2_shell_integration.zsh" && . "${HOME}/.iterm2_shell_integration.zsh"
 
-# Opens a given command in a new tab in iTerm2 
+# Opens a given command in a new tab in iTerm2
 # usage: newtab <command>
-newtab(){  
+newtab(){
   osascript \
     -e 'tell application "iTerm2" to tell current window to set newWindow to (create tab with default profile)'\
     -e "tell application \"iTerm2\" to tell current session of newWindow to write text \"${@}\""
 }
-

@@ -1,7 +1,7 @@
 alias db-create="bin/rails db:create"
 alias db-drop="bin/rails db:drop"
 
-function db-reset() {
+db-reset() {
   if [ $# -eq 0 ]; then
     rake db:reset
   else
@@ -14,7 +14,7 @@ alias db-seed="bin/rails db:seed"
 alias db-setup="bin/rails db:setup"
 alias db-reseed="db-drop && db-setup && db-migrate && db-seed"
 
-function db-rollback() {
+db-rollback() {
   if [ $# -eq 0 ]; then
     rake db:rollback STEP=1
   else
