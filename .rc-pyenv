@@ -1,6 +1,17 @@
 command -v pyenv >/dev/null || return
 
-## pyenv
 export PYENV_ROOT="$HOME/.pyenv"
 [ -d "$PYENV_ROOT/bin" ] && export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init -)"
+
+# `eval "$(pyenv init -)"` forks ~220 ms every shell. Defer until the user
+# actually invokes a Python command.
+_myrc_pyenv_load() {
+  unset -f pyenv python python3 pip pip3 _myrc_pyenv_load 2>/dev/null
+  eval "$(pyenv init -)"
+}
+
+pyenv()   { _myrc_pyenv_load; pyenv "$@"; }
+python()  { _myrc_pyenv_load; python "$@"; }
+python3() { _myrc_pyenv_load; python3 "$@"; }
+pip()     { _myrc_pyenv_load; pip "$@"; }
+pip3()    { _myrc_pyenv_load; pip3 "$@"; }

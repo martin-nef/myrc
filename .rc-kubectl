@@ -4,9 +4,21 @@ command -v kubectl >/dev/null || return
 alias k="kubectl"
 export K_NAMES_ONLY='{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'
 
+# `kubectl completion <shell>` forks the kubectl binary every shell start.
+# Cache its output; regenerate only when kubectl is newer than the cache.
+_myrc_kubectl_completion() {
+  local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/myrc"
+  local cache_file="$cache_dir/kubectl-completion.$MYRC_SHELL"
+  local kubectl_bin
+  kubectl_bin="$(command -v kubectl)"
+  if [ ! -f "$cache_file" ] || [ "$kubectl_bin" -nt "$cache_file" ]; then
+    mkdir -p "$cache_dir"
+    kubectl completion "$MYRC_SHELL" >"$cache_file"
+  fi
+  . "$cache_file"
+}
 
 case "$MYRC_SHELL" in
-  zsh)  eval "$(kubectl completion zsh)" ;;
-  bash) eval "$(kubectl completion bash)" ;;
+  zsh|bash) _myrc_kubectl_completion ;;
 esac
-
+unset -f _myrc_kubectl_completion

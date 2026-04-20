@@ -4,6 +4,13 @@ My personal terminal script, command and alias collection.
 
 Designed to work on a fresh PC, but expand as as dependencies become available.
 
+## Table of Contents
+
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Uninstalling](#uninstalling)
+- [Adding a new plugin](#adding-a-new-plugin)
+
 ## Requirements
 
 - A POSIX shell: `sh`, `dash`, `bash`, or `zsh`.
@@ -49,3 +56,92 @@ make clean # or directly ./uninstall.sh
 Strips the injected block from every profile file. `.tokens` is left in
 place so you do not lose any secrets you added — remove it manually if you
 want a fully clean slate.
+
+## Adding a new plugin
+
+A plugin is a single file named `.rc-<tool>`. `.myrc` sources every
+`.rc-*` in `$MYRC_DIR`, so creating the file is all the wiring needed.
+
+Follow these conventions:
+
+1. **Early return if the tool is absent.** A fresh machine should load
+   your plugin as a no-op until the tool is installed. Use `command -v`
+   (or a file check) and bail out at the top:
+
+   ```sh
+   command -v foo >/dev/null || return
+   ```
+
+2. **Stay portable.** Target `bash` and `zsh`, and write POSIX shell by
+   default — plugins run from `sh` too when `$MYRC_DIR` is pre-set. If
+   you genuinely need shell-specific features (zsh hooks, `autoload`,
+   arrays, …), gate the file with `$MYRC_SHELL`:
+
+   ```sh
+   [ "$MYRC_SHELL" = "zsh" ] || return
+   ```
+
+   `.prep` sets `MYRC_SHELL` to `zsh`, `bash`, or `sh` before any plugin
+   runs. See `.rc-kubectl` for a `case "$MYRC_SHELL"` example that
+   branches instead of bailing.
+
+3. **Keep startup snappy.** A new shell sources every plugin, so any
+   subprocess or heavy source costs you every prompt. Two patterns we
+   use:
+
+   - **Lazy stubs** for tools whose init forks subprocesses
+     (`eval "$(foo init -)"`) or sources a slow file (`nvm.sh`).
+     Define stub functions for every command that should trigger the
+     load; on first call they unset themselves, run the real init, and
+     dispatch. See `.rc-nvm`, `.rc-rbenv`, `.rc-pyenv` for the pattern.
+
+   - **On-disk cache** for completion generators that always emit the
+     same text per binary version (e.g. `kubectl completion zsh`).
+     Write to `${XDG_CACHE_HOME:-$HOME/.cache}/myrc/` and regenerate
+     only when the binary is newer than the cache. See `.rc-kubectl`.
+
+   If a plugin only sets env vars or aliases, no laziness is needed —
+   just keep it short.
+
+4. **Namespace private helpers.** Prefix internal functions with
+   `_myrc_` so they don't collide with the user's shell.
+
+Before committing, time your plugin in isolation.
+
+**zsh** (uses `$EPOCHREALTIME` for sub-millisecond resolution):
+
+```sh
+zsh -f -c '
+  zmodload zsh/datetime
+  export MYRC_DIR="'"$PWD"'" MYRC_SHELL=zsh
+  . "$MYRC_DIR/.myprofile"
+  t0=$EPOCHREALTIME; . "$MYRC_DIR/.rc-yourplugin"; t1=$EPOCHREALTIME
+  printf "%.3f s\n" $(( t1 - t0 ))
+'
+```
+
+**bash** (5.0+ — supports `$EPOCHREALTIME` natively, no module needed):
+
+```sh
+bash --noprofile --norc -c '
+  export MYRC_DIR="'"$PWD"'" MYRC_SHELL=bash
+  . "$MYRC_DIR/.myprofile"
+  t0=$EPOCHREALTIME; . "$MYRC_DIR/.rc-yourplugin"; t1=$EPOCHREALTIME
+  awk "BEGIN{printf \"%.3f s\n\", $t1 - $t0}"
+'
+```
+
+**sh / older bash / any POSIX shell** — fall back to external `/usr/bin/time`:
+
+```sh
+/usr/bin/time -p sh -c '
+  export MYRC_DIR="'"$PWD"'" MYRC_SHELL=sh
+  . "$MYRC_DIR/.myprofile"
+  . "$MYRC_DIR/.rc-yourplugin"
+' 2>&1 | grep real
+```
+
+Aim for <10 ms on a warm cache.
+
+To time the whole startup for a given shell, drop the `.rc-yourplugin`
+step and source `.myrc` instead — or just `/usr/bin/time -p zsh -i -c exit`.

@@ -1,4 +1,18 @@
-
 command -v rbenv >/dev/null || return
 
-eval "$(rbenv init -)"
+# `eval "$(rbenv init -)"` forks ~100 ms every shell. Defer until the user
+# actually invokes a Ruby command.
+_myrc_rbenv_load() {
+  unset -f rbenv ruby bundle bundler gem rake irb erb rails _myrc_rbenv_load 2>/dev/null
+  eval "$(rbenv init -)"
+}
+
+rbenv()   { _myrc_rbenv_load; rbenv "$@"; }
+ruby()    { _myrc_rbenv_load; ruby "$@"; }
+bundle()  { _myrc_rbenv_load; bundle "$@"; }
+bundler() { _myrc_rbenv_load; bundler "$@"; }
+gem()     { _myrc_rbenv_load; gem "$@"; }
+rake()    { _myrc_rbenv_load; rake "$@"; }
+irb()     { _myrc_rbenv_load; irb "$@"; }
+erb()     { _myrc_rbenv_load; erb "$@"; }
+rails()   { _myrc_rbenv_load; rails "$@"; }
