@@ -1,0 +1,1 @@
+[ -r "$MYRC_DIR/.tokens" ] && . "$MYRC_DIR/.tokens"

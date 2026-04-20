@@ -1,0 +1,23 @@
+alias db-create="bin/rails db:create"
+alias db-drop="bin/rails db:drop"
+
+function db-reset() {
+  if [ $# -eq 0 ]; then
+    rake db:reset
+  else
+    rake db:reset:$1
+  fi
+}
+
+alias db-migrate="bin/rails db:migrate"
+alias db-seed="bin/rails db:seed"
+alias db-setup="bin/rails db:setup"
+alias db-reseed="db-drop && db-setup && db-migrate && db-seed"
+
+function db-rollback() {
+  if [ $# -eq 0 ]; then
+    rake db:rollback STEP=1
+  else
+    rake db:rollback:$1 STEP=${2:-1}
+  fi
+}

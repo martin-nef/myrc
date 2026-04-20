@@ -1,0 +1,12 @@
+command -v kubectl >/dev/null || return
+
+# kubectl
+alias k="kubectl"
+export K_NAMES_ONLY='{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'
+
+
+case "$MYRC_SHELL" in
+  zsh)  source <(kubectl completion zsh) ;;
+  bash) source <(kubectl completion bash) ;;
+esac
+

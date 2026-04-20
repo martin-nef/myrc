@@ -1,0 +1,66 @@
+find-by-port() {
+	lsof -n -i :$1
+}
+
+kill-by-port() {
+  lsof -t -i :$1 | xargs kill
+}
+
+kill-by-port () {
+    local signal=""
+    local port=""
+
+    # Check if the first argument starts with a dash (e.g., -9, -15)
+    if [[ "$1" == -* ]]; then
+        signal="$1"
+        port="$2"
+    else
+        port="$1"
+    fi
+
+    # Ensure a port was actually provided
+    if [[ -z "$port" ]]; then
+        echo "Usage: kill-by-port [-SIGNAL] PORT"
+        return 1
+    fi
+
+    # Gather the PIDs
+    local pids
+    pids=$(lsof -t -i :"$port")
+
+    # If no PIDs are found, let the user know and exit
+    if [[ -z "$pids" ]]; then
+        echo "No processes found on port $port."
+        return 0
+    fi
+
+    # Pass the signal (if any) and the PIDs to the kill command
+    echo "Killing processes on port $port: $pids"
+    echo "$pids" | xargs kill $signal
+}
+
+
+find-in-parallel() {
+  local pat=$1
+  shift
+  parallel -j+0 find '{}' -type f -iname "$pat" ::: "$@"
+}
+
+cls() {
+  clear && clear && clear
+}
+
+
+###############################
+#         grep stuff          #
+###############################
+# grep
+first-word() {
+	grep -Eo '^[^ ]+' $@
+}
+first-word() {
+  awk '{print $1}'
+}
+grepp() {
+  grep -Eo $1
+}

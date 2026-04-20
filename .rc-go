@@ -1,0 +1,2 @@
+# download & tidy go mod quickly
+alias gogo="go mod download && go mod tidy"

@@ -1,0 +1,106 @@
+
+
+# git
+alias take-all-ours="git checkout --ours *"
+alias gm="git merge"
+alias gp="git pull"
+alias push="git push"
+alias pushf="git push --force-with-lease"
+pushu() {
+	if [ $# -eq 0 ]; then
+		git branch | grep '*' | tr -d ' * ' | git push --set-upstream origin $(git branch --show-current)
+	else
+		git push --set-upstream $@
+	fi
+}
+push-all-remotes-force() {
+	git remote -v | grep push | awk '{print $1}' | xargs -L 1 git push --force-with-lease
+}
+push-all-remotes() {
+	git remote -v | grep push | awk '{print $1}' | xargs -L 1 git push
+}
+alias pull="git pull"
+alias gpl="git pull"
+alias grbc="git rebase --continue"
+alias rebase-continue="git rebase --continue"
+alias rebase-abort="git rebase --abort"
+alias branch="git branch"
+alias gb="git branch"
+alias gc="git checkout"
+alias checkout="git checkout"
+alias gcb="git checkout -b"
+alias gs="git status"
+alias add="git add ."
+alias commit="git commit"
+alias gacm="add && commit -m"
+alias gcm="git commit -m"
+alias status="git status"
+alias fetch="git fetch --all --prune --prune-tags --progress -q || 0"
+alias commit-empty="git commit -n --allow-empty -m \"empty commit\"";
+p() {
+	push;
+	push gl;
+}
+gbd() {
+  if [ $# -eq 0 ]; then
+    local current_branch=$(git branch --show-current)
+    git checkout master
+    git branch -D $current_branch
+  else
+    git branch -D $1
+  fi
+}
+GBD() {
+  if [ $# -eq 0 ]; then
+    local current_branch=$(git branch --show-current)
+    git checkout master
+    git push --no-verify -d origin $current_branch
+    git branch -D $current_branch
+  else
+    git push --no-verify -d origin $1
+    git branch -D $1
+  fi
+}
+recommit() {
+	LAST_COMMIT_MESSAGE=$(git log -1 --pretty=%B) && \
+	git reset HEAD~1 --soft && \
+	git add -A && git commit -am "$LAST_COMMIT_MESSAGE"
+}
+reset() {
+	num_regex='^[0-9]+$'
+	origin_regex='^origin/'
+	if [ $# -eq 0 ]; then
+		git reset --soft HEAD~1 ${@:2}
+	elif [[ $1 =~ $num_regex ]]; then
+		git reset --soft HEAD~"$1" ${@:2}
+	elif [[ $1 =~ $origin_regex ]]; then
+		fetch && git reset $@
+	else
+		git reset $@
+	fi
+}
+rebase() {
+	num_regex='^[0-9]+$'
+	origin_regex='^origin/'
+	if [ $# -eq 0 ]; then
+    echo '(fetch) rebase origin/master'
+		fetch && git rebase origin/master
+	elif [[ $1 =~ $num_regex ]]; then
+    echo "rebase HEAD~$1 ${@:2}"
+		git rebase HEAD~"$1" "${@:2}"
+	elif [[ $1 =~ $origin_regex ]]; then
+    echo "(fetch) rebase $@"
+		fetch && git rebase $@
+	else
+    echo "(no fetch) rebase $@"
+		git rebase $@
+	fi
+}
+remotes() {
+	git remote -v | grep push | awk '{print $1}'
+}
+alias get-default-ref="git rev-parse --abbrev-ref origin/HEAD"
+alias get-default-branch="\${\$(get-default-ref)/origin\//\"\"}"
+set-upstream() {
+	echo "git push -u <remote_name> <local_branch_name>:<corresponding_remote_branch_name>"
+}

@@ -1,0 +1,38 @@
+
+############
+# SSH
+############
+SSH_ENV="$HOME/.ssh/agent.env"
+
+start_ssh_agent() {
+    ssh-agent | sed 's/^echo/#echo/' > "$SSH_ENV"
+    chmod 600 "$SSH_ENV"
+    source "$SSH_ENV" > /dev/null
+}
+
+if [ -f "$SSH_ENV" ]; then
+    source "$SSH_ENV" > /dev/null
+    # Check if the agent process is still alive
+    kill -0 "$SSH_AGENT_PID" 2>/dev/null || start_ssh_agent
+else
+    start_ssh_agent
+fi
+
+copy-private-key() {
+	echo $(<~/.ssh/id_ed25519_$1)
+	cat ~/.ssh/id_ed25519_$1 | pbcopy && \
+	echo "Private key copied to clipboard."	
+}
+copy-pub-key() {
+	echo $(<~/.ssh/id_ed25519_$1.pub)
+	cat ~/.ssh/id_ed25519_$1.pub | pbcopy && \
+	echo "Public key copied to clipboard."	
+}
+gen-key() {
+	ssh-keygen -t ed25519 -q -N "" \
+		-C "$2" \
+		-f ~/.ssh/id_ed25519_$1
+	copy-private-key $1
+	echo "To copy public key type:"
+	echo "copy-pub-key $1"
+}
