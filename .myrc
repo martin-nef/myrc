@@ -1,4 +1,4 @@
-. "$MYRC_DIR/.myprofile"
+. "$MYRC_DIR/.myenv"
 
 for rc in "$MYRC_DIR"/.rc-*; do
   [ -r "$rc" ] && . "$rc"

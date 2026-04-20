@@ -1,0 +1,18 @@
+# Guard so sourcing this file twice (e.g. once from ~/.zshenv then again
+# from .myrc in an interactive shell) is a no-op. Not exported — child
+# shells must run their own initialisation so shell functions (lazy stubs)
+# get defined.
+[ -n "${MYENV_LOADED:-}" ] && return 0
+MYENV_LOADED=1
+
+[ -r "$MYRC_DIR/.tokens" ] && . "$MYRC_DIR/.tokens"
+
+for env in "$MYRC_DIR"/.env-*; do
+  [ -r "$env" ] && . "$env"
+done
+unset env
+
+# Make non-interactive bash/dash descendants source this file too, so
+# scripts and editor subshells see the tokens + env-manager stubs.
+export BASH_ENV="$MYRC_DIR/.myenv"
+export ENV="$MYRC_DIR/.myenv"

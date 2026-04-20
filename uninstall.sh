@@ -29,7 +29,7 @@ strip() {
 
 strip "$HOME/.profile"
 strip "$HOME/.bash_profile"
-strip "$HOME/.zprofile"
+strip "$HOME/.zshenv"
 strip "$HOME/.bashrc"
 strip "$HOME/.zshrc"
 

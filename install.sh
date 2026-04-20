@@ -47,10 +47,12 @@ inject() {
   installed_any=1
 }
 
-# Login/profile files get .myprofile (env only).
-inject "$HOME/.profile"      ".myprofile"
-inject "$HOME/.bash_profile" ".myprofile"
-inject "$HOME/.zprofile"     ".myprofile"
+# Env files get .myenv (tokens + env-manager plugins). For zsh we use
+# .zshenv because it is sourced by *every* zsh invocation (login/non-login,
+# interactive/non-interactive) — a strict superset of .zprofile.
+inject "$HOME/.profile"      ".myenv"
+inject "$HOME/.bash_profile" ".myenv"
+inject "$HOME/.zshenv"       ".myenv"
 
 # Interactive rc files get .myrc (env + aliases + .rc-* plugins).
 inject "$HOME/.bashrc"       ".myrc"
@@ -58,7 +60,7 @@ inject "$HOME/.zshrc"        ".myrc"
 
 if [ "$installed_any" -eq 0 ]; then
   echo "myrc: no existing profile files found under \$HOME."
-  echo "      create one of ~/.profile, ~/.bashrc, ~/.zshrc, ~/.bash_profile or ~/.zprofile and re-run."
+  echo "      create one of ~/.profile, ~/.bashrc, ~/.zshrc, ~/.bash_profile or ~/.zshenv and re-run."
   exit 1
 fi
 

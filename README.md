@@ -9,6 +9,7 @@ Designed to work on a fresh PC, but expand as as dependencies become available.
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Uninstalling](#uninstalling)
+- [Documentation](#documentation)
 - [Adding a new plugin](#adding-a-new-plugin)
 
 ## Requirements
@@ -17,9 +18,10 @@ Designed to work on a fresh PC, but expand as as dependencies become available.
 - `make` (optional — you can invoke `./install.sh` directly).
 - `awk`, `grep`, `cp`, `mktemp` — available on any standard macOS or Linux install.
 
-Individual `.rc-*` plugins (git, nvm, pyenv, rbenv, kubectl, ...) activate only
-when the corresponding tool is already on your `PATH`, so a fresh machine is
-supported — install what you need and re-open your shell.
+Individual `.env-*` plugins (nvm, pyenv, rbenv) and `.rc-*` plugins (git,
+kubectl, ssh, ...) activate only when the corresponding tool is already on
+your `PATH`, so a fresh machine is supported — install what you need and
+re-open your shell.
 
 ## Installation
 
@@ -35,12 +37,18 @@ supported — install what you need and re-open your shell.
    - Copies `dummy.tokens` to `.tokens` on first run. Your real `.tokens`
      file is git-ignored so secrets stay local.
    - Detects which shell profile files already exist in `$HOME` and appends
-     a small, marker-delimited block to each. Login/profile files
-     (`~/.profile`, `~/.bash_profile`, `~/.zprofile`) source `.myprofile`
-     (environment only). Interactive rc files (`~/.bashrc`, `~/.zshrc`)
-     source `.myrc` (environment + aliases + every `.rc-*` plugin).
+     a small, marker-delimited block to each. Env files (`~/.profile`,
+     `~/.bash_profile`, `~/.zshenv`) source `.myenv` (tokens + every
+     `.env-*` plugin). Interactive rc files (`~/.bashrc`, `~/.zshrc`)
+     source `.myrc` (which brings in `.myenv` first, then every `.rc-*`
+     plugin and aliases).
    - The injected block sets `MYRC_DIR` to this repository's absolute path,
      then sources `.prep` followed by the appropriate entry point.
+   - `.myenv` is guarded against double-sourcing in the interactive case
+     where `.zshenv` *and* `.zshrc` would both pull it in.
+   - `.myenv` also exports `BASH_ENV` / `ENV` pointing at itself, so any
+     non-interactive bash/dash spawned from your interactive shell still
+     sees your tokens. See [docs/shell-sourcing-matrix.md](docs/shell-sourcing-matrix.md).
    - Is idempotent: rerunning skips any file already containing the myrc
      block, so it is safe to run again after you add a new profile file.
    - Errors out if run from the wrong directory (detects `.prep`).
@@ -57,10 +65,29 @@ Strips the injected block from every profile file. `.tokens` is left in
 place so you do not lose any secrets you added — remove it manually if you
 want a fully clean slate.
 
+## Documentation
+
+- [Shell sourcing matrix](docs/shell-sourcing-matrix.md) — which files
+  fire for which shell (login vs non-login, interactive vs
+  non-interactive) and how myrc slots into each, across sh, bash, and
+  zsh. Read this if you are wondering why scripts, editor subshells, or
+  cron jobs don't see your tokens.
+
 ## Adding a new plugin
 
-A plugin is a single file named `.rc-<tool>`. `.myrc` sources every
-`.rc-*` in `$MYRC_DIR`, so creating the file is all the wiring needed.
+A plugin is a single file in `$MYRC_DIR`. Two flavours:
+
+- **`.rc-<tool>`** — interactive-only. Aliases, completions,
+  interactive-shell tweaks. Sourced by `.myrc`, so it only runs in
+  interactive shells (any bash/zsh tab you type in).
+- **`.env-<tool>`** — environment/PATH setup that every shell (including
+  scripts, editor subshells, cron) should see. Sourced by `.myenv`,
+  which is pulled in by `~/.zshenv`, `~/.profile`, `~/.bash_profile`,
+  and via `BASH_ENV` for non-interactive bash descendants.
+
+Use `.env-` for PATH manipulations and tool-version managers whose
+effects scripts rely on (nvm, rbenv, pyenv). Use `.rc-` for everything
+else — aliases, completion setup, prompt tweaks.
 
 Follow these conventions:
 
@@ -93,7 +120,7 @@ Follow these conventions:
      (`eval "$(foo init -)"`) or sources a slow file (`nvm.sh`).
      Define stub functions for every command that should trigger the
      load; on first call they unset themselves, run the real init, and
-     dispatch. See `.rc-nvm`, `.rc-rbenv`, `.rc-pyenv` for the pattern.
+     dispatch. See `.env-nvm`, `.env-rbenv`, `.env-pyenv` for the pattern.
 
    - **On-disk cache** for completion generators that always emit the
      same text per binary version (e.g. `kubectl completion zsh`).
@@ -114,7 +141,7 @@ Before committing, time your plugin in isolation.
 zsh -f -c '
   zmodload zsh/datetime
   export MYRC_DIR="'"$PWD"'" MYRC_SHELL=zsh
-  . "$MYRC_DIR/.myprofile"
+  . "$MYRC_DIR/.myenv"
   t0=$EPOCHREALTIME; . "$MYRC_DIR/.rc-yourplugin"; t1=$EPOCHREALTIME
   printf "%.3f s\n" $(( t1 - t0 ))
 '
@@ -125,7 +152,7 @@ zsh -f -c '
 ```sh
 bash --noprofile --norc -c '
   export MYRC_DIR="'"$PWD"'" MYRC_SHELL=bash
-  . "$MYRC_DIR/.myprofile"
+  . "$MYRC_DIR/.myenv"
   t0=$EPOCHREALTIME; . "$MYRC_DIR/.rc-yourplugin"; t1=$EPOCHREALTIME
   awk "BEGIN{printf \"%.3f s\n\", $t1 - $t0}"
 '
@@ -136,7 +163,7 @@ bash --noprofile --norc -c '
 ```sh
 /usr/bin/time -p sh -c '
   export MYRC_DIR="'"$PWD"'" MYRC_SHELL=sh
-  . "$MYRC_DIR/.myprofile"
+  . "$MYRC_DIR/.myenv"
   . "$MYRC_DIR/.rc-yourplugin"
 ' 2>&1 | grep real
 ```
