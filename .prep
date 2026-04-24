@@ -15,5 +15,3 @@ case "$MYRC_SHELL" in
   zsh)  MYRC_DIR="${${(%):-%x}:A:h}" ;;
   bash) MYRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)" ;;
 esac
-
-[ -r "$MYRC_DIR/.paths" ] && . "$MYRC_DIR/.paths"

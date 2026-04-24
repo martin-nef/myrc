@@ -1,9 +1,6 @@
-# Guard so sourcing this file twice (e.g. once from ~/.zshenv then again
-# from .myrc in an interactive shell) is a no-op. Not exported — child
-# shells must run their own initialisation so shell functions (lazy stubs)
-# get defined.
-[ -n "${MYENV_LOADED:-}" ] && return 0
-MYENV_LOADED=1
+# Safe to source more than once: everything below is idempotent (assignments,
+# function defs, PATH prepends). Interactive shells re-source this from .myrc
+# so PATH prepends survive macOS's /etc/zprofile → path_helper demotion.
 
 [ -r "$MYRC_DIR/.tokens" ] && . "$MYRC_DIR/.tokens"
 
