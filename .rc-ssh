@@ -19,20 +19,23 @@ else
 fi
 
 copy-private-key() {
-  cat ~/.ssh/id_ed25519_"$1"
+  echo ~/.ssh/id_ed25519_"$1"
   cat ~/.ssh/id_ed25519_"$1" | pbcopy && \
   echo "Private key copied to clipboard."
 }
 copy-pub-key() {
-  cat ~/.ssh/id_ed25519_"$1".pub
+  echo ~/.ssh/id_ed25519_"$1".pub
   cat ~/.ssh/id_ed25519_"$1".pub | pbcopy && \
   echo "Public key copied to clipboard."
 }
 gen-key() {
+  echo "keys generated"
+  echo ~/.ssh/id_ed25519_$1
+  echo ~/.ssh/id_ed25519_$1.pub
   ssh-keygen -t ed25519 -q -N "" \
     -C "$2" \
     -f ~/.ssh/id_ed25519_$1
-  copy-private-key $1
-  echo "To copy public key type:"
-  echo "copy-pub-key $1"
+  copy-public-key $1
+  echo "To copy private key type:"
+  echo "copy-private-key $1"
 }

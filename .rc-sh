@@ -1,3 +1,5 @@
+export EDITOR='code --wait'
+
 find-by-port() {
   lsof -n -i :"$1"
 }
