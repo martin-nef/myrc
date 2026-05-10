@@ -37,10 +37,6 @@ find-in-parallel() {
   parallel -j+0 find '{}' -type f -iname "$pat" ::: "$@"
 }
 
-unalias cls &2> /dev/null
-unset -f cls
-unalias clear &2> /dev/null
-unset -f clear
 cls() {
   unalias clear &2> /dev/null
   unset -f clear
