@@ -1,0 +1,24 @@
+command -v flux >/dev/null || return
+
+# flux
+alias k="flux"
+export K_NAMES_ONLY='{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'
+
+# `flux completion <shell>` forks the flux binary every shell start.
+# Cache its output; regenerate only when flux is newer than the cache.
+_myrc_flux_completion() {
+  local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/myrc"
+  local cache_file="$cache_dir/flux-completion.$MYRC_SHELL"
+  local flux_bin
+  flux_bin="$(command -v flux)"
+  if [ ! -f "$cache_file" ] || [ "$flux_bin" -nt "$cache_file" ]; then
+    mkdir -p "$cache_dir"
+    flux completion "$MYRC_SHELL" >"$cache_file"
+  fi
+  . "$cache_file"
+}
+
+case "$MYRC_SHELL" in
+  zsh|bash) _myrc_flux_completion ;;
+esac
+unset -f _myrc_flux_completion
