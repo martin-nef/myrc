@@ -1,10 +1,9 @@
 .PHONY: install clean test fmt-check shellcheck lint check
 
 SHFMT_FLAGS := -i 2 -ci
-SHELL_SCRIPTS := $(shell find . -name '*.sh' -not -path './spec/*')
-# Sourced fragments (.prep, .myenv, .myrc, .rc-*, .env-*) have pre-existing
-# shellcheck issues — clean those up in a separate pass before adding
-# them here.
+SHELL_SCRIPTS := install.sh uninstall.sh \
+                 .prep .myenv .myrc \
+                 $(wildcard .rc-*) $(wildcard .env-*)
 
 install:
 	./install.sh

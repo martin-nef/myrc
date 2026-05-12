@@ -1,3 +1,4 @@
+# shellcheck shell=bash disable=SC1090  # cached completion file is dynamic
 command -v kubectl >/dev/null || return
 
 # kubectl
@@ -19,6 +20,6 @@ _myrc_kubectl_completion() {
 }
 
 case "$MYRC_SHELL" in
-  zsh|bash) _myrc_kubectl_completion ;;
+  zsh | bash) _myrc_kubectl_completion ;;
 esac
 unset -f _myrc_kubectl_completion

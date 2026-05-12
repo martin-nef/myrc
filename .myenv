@@ -1,3 +1,5 @@
+# shellcheck shell=sh disable=SC1090,SC1091  # dynamic sourcing is intentional
+
 # Safe to source more than once: everything below is idempotent (assignments,
 # function defs, PATH prepends). Interactive shells re-source this from .myrc
 # so PATH prepends survive macOS's /etc/zprofile → path_helper demotion.

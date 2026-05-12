@@ -117,11 +117,16 @@ make test        # bats spec/
 make check       # read-only: fmt-check + test + shellcheck (run before opening a PR / in CI)
 ```
 
-Lint, fmt, and tests currently cover the installer scripts only. The
-sourced fragments (`.prep`, `.myenv`, `.myrc`, `.rc-*`, `.env-*`) have
-pre-existing shellcheck findings (mostly missing shell directives, plus
-a few real quoting bugs) — they will be folded into `make lint` once
-cleaned up.
+Coverage spans the installer scripts (`install.sh`, `uninstall.sh`) and
+the sourced fragments (`.prep`, `.myenv`, `.myrc`, `.rc-*`, `.env-*`).
+
+`.prep`, `.myenv`, and `.myrc` are pure POSIX — they must parse and
+source cleanly under `sh`, `dash`, `bash`, and `zsh`. The plugin files
+(`.rc-*`, `.env-*`) may use bash/zsh-isms internally; the entry points'
+guards (e.g. `[ "$MYRC_SHELL" = "zsh" ] || return`) keep them from
+loading where they'd misbehave. The matrix test in `spec/sources.bats`
+iterates over every available shell and verifies both the parse and
+end-to-end source-chain expectations, skipping shells not on `PATH`.
 
 ### Adding a new plugin
 

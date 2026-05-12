@@ -1,3 +1,4 @@
+# shellcheck shell=bash disable=SC1090  # cached completion file is dynamic
 command -v flux >/dev/null || return
 
 # flux
@@ -19,6 +20,6 @@ _myrc_flux_completion() {
 }
 
 case "$MYRC_SHELL" in
-  zsh|bash) _myrc_flux_completion ;;
+  zsh | bash) _myrc_flux_completion ;;
 esac
 unset -f _myrc_flux_completion

@@ -1,3 +1,4 @@
+# shellcheck shell=bash disable=SC1091  # external integration script may be absent
 [ "$TERM_PROGRAM" = "iTerm.app" ] || return
 [ "$MYRC_SHELL" = "zsh" ] || return
 
@@ -6,8 +7,8 @@ test -e "${HOME}/.iterm2_shell_integration.zsh" && . "${HOME}/.iterm2_shell_inte
 
 # Opens a given command in a new tab in iTerm2
 # usage: newtab <command>
-newtab(){
+newtab() {
   osascript \
-    -e 'tell application "iTerm2" to tell current window to set newWindow to (create tab with default profile)'\
-    -e "tell application \"iTerm2\" to tell current session of newWindow to write text \"${@}\""
+    -e 'tell application "iTerm2" to tell current window to set newWindow to (create tab with default profile)' \
+    -e "tell application \"iTerm2\" to tell current session of newWindow to write text \"$*\""
 }

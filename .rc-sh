@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 export EDITOR='code --wait'
 
 find-by-port() {
@@ -9,8 +10,11 @@ kill-by-port() {
   local port=""
 
   case "$1" in
-    -*) signal="$1"; port="$2" ;;
-    *)  port="$1" ;;
+    -*)
+      signal="$1"
+      port="$2"
+      ;;
+    *) port="$1" ;;
   esac
 
   if [ -z "$port" ]; then
@@ -27,9 +31,9 @@ kill-by-port() {
   fi
 
   echo "Killing processes on port $port: $pids"
+  # shellcheck disable=SC2086  # unquoted so an empty $signal disappears
   echo "$pids" | xargs kill $signal
 }
-
 
 find-in-parallel() {
   local pat=$1
@@ -38,11 +42,10 @@ find-in-parallel() {
 }
 
 cls() {
-  unalias clear &2> /dev/null
+  unalias clear 2>/dev/null
   unset -f clear
   clear && clear && clear
 }
-
 
 ###############################
 #         grep stuff          #

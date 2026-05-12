@@ -1,4 +1,4 @@
-
+# shellcheck shell=bash
 
 # git
 alias take-all-ours="git checkout --ours *"
@@ -8,9 +8,9 @@ alias push="git push"
 alias pushf="git push --force-with-lease"
 pushu() {
   if [ $# -eq 0 ]; then
-    git branch | grep '*' | tr -d ' * ' | git push --set-upstream origin $(git branch --show-current)
+    git push --set-upstream origin "$(git branch --show-current)"
   else
-    git push --set-upstream $@
+    git push --set-upstream "$@"
   fi
 }
 push-all-remotes-force() {
@@ -38,10 +38,10 @@ alias status="git status"
 fetch() {
   git fetch --all --prune --prune-tags --progress -q || true
 }
-alias commit-empty="git commit -n --allow-empty -m \"empty commit\"";
+alias commit-empty="git commit -n --allow-empty -m \"empty commit\""
 p() {
-  push;
-  push gl;
+  push
+  push gl
 }
 gbd() {
   if [ $# -eq 0 ]; then
@@ -66,9 +66,9 @@ GBD() {
   fi
 }
 recommit() {
-  LAST_COMMIT_MESSAGE=$(git log -1 --pretty=%B) && \
-  git reset HEAD~1 --soft && \
-  git add -A && git commit -am "$LAST_COMMIT_MESSAGE"
+  LAST_COMMIT_MESSAGE=$(git log -1 --pretty=%B) &&
+    git reset HEAD~1 --soft &&
+    git add -A && git commit -am "$LAST_COMMIT_MESSAGE"
 }
 reset() {
   if [ $# -eq 0 ]; then
@@ -76,10 +76,10 @@ reset() {
     return
   fi
   case "$1" in
-    ''|*[!0-9]*)
+    '' | *[!0-9]*)
       case "$1" in
         origin/*) fetch && git reset "$@" ;;
-        *)        git reset "$@" ;;
+        *) git reset "$@" ;;
       esac
       ;;
     *)
@@ -98,7 +98,7 @@ rebase() {
     return
   fi
   case "$1" in
-    ''|*[!0-9]*)
+    '' | *[!0-9]*)
       case "$1" in
         origin/*)
           echo "(fetch) rebase $*"

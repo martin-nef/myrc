@@ -1,3 +1,4 @@
+# shellcheck shell=sh
 command -v go >/dev/null || return
 
 # download & tidy go mod quickly

@@ -1,3 +1,5 @@
+# shellcheck shell=sh disable=SC1090,SC1091  # dynamic sourcing is intentional
+
 . "$MYRC_DIR/.myenv"
 
 for rc in "$MYRC_DIR"/.rc-*; do

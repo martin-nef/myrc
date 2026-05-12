@@ -1,17 +1,24 @@
+# shellcheck shell=sh
+# Detect the host shell and sanity-check $MYRC_DIR. Pure POSIX so this
+# file is safe to source under sh, bash, zsh, and dash.
+#
+# $MYRC_DIR must be set by the caller before sourcing. install.sh's
+# injected block does this automatically; if you source the rc files
+# directly, export MYRC_DIR yourself first.
+
 if [ -n "${ZSH_VERSION:-}" ]; then
-  MYRC_SHELL=zsh
+  MYRC_SHELL='zsh'
 elif [ -n "${BASH_VERSION:-}" ]; then
-  MYRC_SHELL=bash
-elif [ -n "${MYRC_DIR:-}" ]; then
-  MYRC_SHELL=sh
+  MYRC_SHELL='bash'
 else
-  echo "myrc: cannot auto-detect script path under this shell." >&2
-  echo "  Set MYRC_DIR before sourcing, e.g.:" >&2
+  MYRC_SHELL='sh'
+fi
+export MYRC_SHELL
+
+if [ -z "${MYRC_DIR:-}" ]; then
+  echo "myrc: \$MYRC_DIR is not set." >&2
+  echo "  Set it before sourcing, e.g.:" >&2
   echo "    MYRC_DIR=/path/to/myrc . \"\$MYRC_DIR/.myrc\"" >&2
+  # shellcheck disable=SC2317  # reachable when sourced from a non-function context
   return 1 2>/dev/null || exit 1
 fi
-
-case "$MYRC_SHELL" in
-  zsh)  MYRC_DIR="${${(%):-%x}:A:h}" ;;
-  bash) MYRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)" ;;
-esac
