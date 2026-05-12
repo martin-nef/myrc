@@ -101,3 +101,71 @@ source_chain_in() {
   [ "$status" -eq 0 ]
   [ "$output" = "$REPO/.myenv" ]
 }
+
+# Startup smoke: each shell must finish sourcing the full chain that
+# install.sh would inject into its profile within the threshold below.
+# Locally we target 150ms — tight enough to catch regressions, with a
+# small cushion above current warm-cache numbers. CI runners are 2-3×
+# slower than a laptop for shell I/O, so we relax to 250ms when $CI is
+# set (GHA, GitLab, CircleCI, etc. all set this).
+@test "startup time: each shell sources its chain under threshold" {
+  local threshold_ms=150
+  if [ -n "${CI:-}" ]; then
+    threshold_ms=250
+  fi
+  local stub_dir="$BATS_TEST_TMPDIR/stubs"
+  local failures=""
+  local shell entry flags time_s time_ms
+
+  # Stub ssh-agent so .rc-ssh doesn't spawn a real agent (which would
+  # both pollute the test environment and add nondeterministic time).
+  mkdir -p "$stub_dir"
+  cat >"$stub_dir/ssh-agent" <<'EOF'
+#!/bin/sh
+exit 0
+EOF
+  chmod +x "$stub_dir/ssh-agent"
+
+  for shell in sh dash bash zsh; do
+    if ! command -v "$shell" >/dev/null 2>&1; then
+      echo "skip: $shell not installed" >&3
+      continue
+    fi
+
+    case "$shell" in
+      bash | zsh) entry=.myrc ;;
+      *) entry=.myenv ;;
+    esac
+
+    case "$shell" in
+      bash) flags="--noprofile --norc" ;;
+      zsh) flags="-f" ;;
+      *) flags="" ;;
+    esac
+
+    # Warm the cache once (.rc-flux / .rc-kubectl regenerate completion
+    # files on first run). Real users hit this once at install time, not
+    # every shell startup — the threshold is for the steady state.
+    PATH="$stub_dir:$PATH" "$shell" $flags \
+      -c "MYRC_DIR='$REPO' . '$REPO/.prep' && . '$REPO/$entry'" \
+      >/dev/null 2>&1
+
+    time_s=$(
+      PATH="$stub_dir:$PATH" /usr/bin/time -p "$shell" $flags \
+        -c "MYRC_DIR='$REPO' . '$REPO/.prep' && . '$REPO/$entry'" \
+        2>&1 >/dev/null | awk '/^real/ {print $2}'
+    )
+    time_ms=$(awk "BEGIN { printf \"%.0f\", $time_s * 1000 }")
+
+    echo "  $shell ($entry): ${time_ms}ms" >&3
+
+    if [ "$time_ms" -gt "$threshold_ms" ]; then
+      failures="$failures $shell:${time_ms}ms"
+    fi
+  done
+
+  if [ -n "$failures" ]; then
+    echo "Exceeded ${threshold_ms}ms threshold:$failures" >&2
+    return 1
+  fi
+}
