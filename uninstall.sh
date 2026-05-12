@@ -3,6 +3,8 @@
 # Safe to run multiple times and from any working directory.
 set -eu
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
+
 BEGIN_MARKER="# >>> myrc >>>"
 END_MARKER="# <<< myrc <<<"
 removed_any=0
@@ -32,6 +34,22 @@ strip "$HOME/.bash_profile"
 strip "$HOME/.zshenv"
 strip "$HOME/.bashrc"
 strip "$HOME/.zshrc"
+
+# Remove Claude Code slash command symlinks. Only unlinks symlinks —
+# real files placed by the user are left untouched.
+if [ -d "$SCRIPT_DIR/commands" ] && [ -d "$HOME/.claude/commands" ]; then
+  for src in "$SCRIPT_DIR"/commands/*.md; do
+    [ -e "$src" ] || continue
+    name=$(basename "$src")
+    dest="$HOME/.claude/commands/$name"
+
+    [ -L "$dest" ] || continue
+
+    rm "$dest"
+    echo "myrc: removed symlink $dest"
+    removed_any=1
+  done
+fi
 
 if [ "$removed_any" -eq 0 ]; then
   echo "myrc: nothing to uninstall."

@@ -64,6 +64,28 @@ if [ "$installed_any" -eq 0 ]; then
   exit 1
 fi
 
+# Symlink Claude Code slash commands into ~/.claude/commands.
+if [ -d "$SCRIPT_DIR/commands" ]; then
+  claude_cmd_dir="$HOME/.claude/commands"
+  mkdir -p "$claude_cmd_dir"
+  for src in "$SCRIPT_DIR"/commands/*.md; do
+    [ -e "$src" ] || continue
+    name=$(basename "$src")
+    dest="$claude_cmd_dir/$name"
+
+    if [ -L "$dest" ]; then
+      # Re-point existing symlink (idempotent).
+      ln -sfn "$src" "$dest"
+      echo "myrc: refreshed symlink $dest"
+    elif [ -e "$dest" ]; then
+      echo "myrc: $dest exists and is not a symlink, leaving it alone."
+    else
+      ln -s "$src" "$dest"
+      echo "myrc: linked $dest -> $src"
+    fi
+  done
+fi
+
 echo
 echo "myrc: done. Populate $SCRIPT_DIR/.tokens, then open a new shell"
 echo "      (or re-source the relevant profile file) to pick up changes."
