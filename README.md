@@ -1,8 +1,8 @@
 # My RC files
 
-My personal terminal script, command and alias collection.
-
-Designed to work on a fresh PC, but expand as as dependencies become available.
+A modular shell rc/env-file system for `sh`, `bash`, and `zsh`, with a
+plugin convention (`.rc-*`, `.env-*`) for tool-specific setup. Designed
+to install cleanly on a fresh PC and grow as dependencies become available.
 
 ## Table of Contents
 
@@ -10,7 +10,10 @@ Designed to work on a fresh PC, but expand as as dependencies become available.
 - [Installation](#installation)
 - [Uninstalling](#uninstalling)
 - [Documentation](#documentation)
-- [Adding a new plugin](#adding-a-new-plugin)
+- [Contribution](#contribution)
+  - [Tooling](#tooling)
+  - [Tests](#tests)
+  - [Adding a new plugin](#adding-a-new-plugin)
 
 ## Requirements
 
@@ -73,7 +76,54 @@ want a fully clean slate.
   zsh. Read this if you are wondering why scripts, editor subshells, or
   cron jobs don't see your tokens.
 
-## Adding a new plugin
+## Contribution
+
+### Tooling
+
+| Tool                                                | Used for                                   | Required?          |
+| --------------------------------------------------- | ------------------------------------------ | ------------------ |
+| [bats-core](https://github.com/bats-core/bats-core) | Running the test suite (`make test`)       | Required for tests |
+| [shellcheck](https://www.shellcheck.net/)           | Static analysis (`make lint`)              | Required for lint  |
+| [shfmt](https://github.com/mvdan/sh)                | Formatting (`make fmt` / `make fmt-check`) | Optional           |
+
+Install everything on macOS:
+
+```sh
+brew install bats-core shellcheck shfmt
+```
+
+On Debian/Ubuntu:
+
+```sh
+sudo apt-get install bats shellcheck
+# shfmt: see https://github.com/mvdan/sh/releases or use `go install mvdan.cc/sh/v3/cmd/shfmt@latest`
+```
+
+### Tests
+
+`spec/*.bats` exercises `install.sh` and `uninstall.sh` inside an isolated
+`$HOME` and a copy of the repo under `$BATS_TEST_TMPDIR`, so the suite never
+touches your real dotfiles. `spec/helpers.bash` rsyncs the repo into the
+sandbox and skips `.git`, `spec/`, and any local `.tokens` so tests start
+from a clean slate.
+
+Common targets:
+
+```sh
+make test       # bats spec/
+make lint       # shellcheck on the installer scripts
+make fmt        # shfmt -w  — rewrite files in place
+make fmt-check  # shfmt -d  — diff-only, exits non-zero if reformatting is needed
+make check      # lint + fmt-check + test (run this before opening a PR)
+```
+
+Lint, fmt, and tests currently cover the installer scripts only. The
+sourced fragments (`.prep`, `.myenv`, `.myrc`, `.rc-*`, `.env-*`) have
+pre-existing shellcheck findings (mostly missing shell directives, plus
+a few real quoting bugs) — they will be folded into `make lint` once
+cleaned up.
+
+### Adding a new plugin
 
 A plugin is a single file in `$MYRC_DIR`. Two flavours:
 
