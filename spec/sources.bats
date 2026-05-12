@@ -104,14 +104,15 @@ source_chain_in() {
 
 # Startup smoke: each shell must finish sourcing the full chain that
 # install.sh would inject into its profile within the threshold below.
-# Locally we target 150ms — tight enough to catch regressions, with a
-# small cushion above current warm-cache numbers. CI runners are 2-3×
-# slower than a laptop for shell I/O, so we relax to 250ms when $CI is
-# set (GHA, GitLab, CircleCI, etc. all set this).
+# Locally we target 100ms — current warm numbers are ~30ms on an M2 Pro,
+# so 100ms catches new heavy plugins without flaking. CI relaxes to
+# 500ms because shared runners are 5×+ slower for shell I/O than a
+# laptop; tighter than that produces flakes without catching anything
+# real (CI is for correctness, perf regressions show up locally first).
 @test "startup time: each shell sources its chain under threshold" {
-  local threshold_ms=150
+  local threshold_ms=100
   if [ -n "${CI:-}" ]; then
-    threshold_ms=250
+    threshold_ms=500
   fi
   local stub_dir="$BATS_TEST_TMPDIR/stubs"
   local failures=""
@@ -125,6 +126,15 @@ source_chain_in() {
 exit 0
 EOF
   chmod +x "$stub_dir/ssh-agent"
+
+  # Pre-populate $SSH_ENV so .rc-ssh's steady-state branch is exercised
+  # rather than its cold-start fork.
+  mkdir -p "$HOME/.ssh"
+  cat >"$HOME/.ssh/agent.env" <<EOF
+SSH_AGENT_PID=$$; export SSH_AGENT_PID;
+SSH_AUTH_SOCK=/tmp/myrc-test-fake.sock; export SSH_AUTH_SOCK;
+EOF
+  chmod 600 "$HOME/.ssh/agent.env"
 
   for shell in sh dash bash zsh; do
     if ! command -v "$shell" >/dev/null 2>&1; then
@@ -162,6 +172,100 @@ EOF
     if [ "$time_ms" -gt "$threshold_ms" ]; then
       failures="$failures $shell:${time_ms}ms"
     fi
+  done
+
+  if [ -n "$failures" ]; then
+    echo "Exceeded ${threshold_ms}ms threshold:$failures" >&2
+    return 1
+  fi
+}
+
+# Per-plugin smoke: each .rc-* and .env-* must source in under 10ms
+# warm (50ms in CI). Matches the README's <10ms target for plugin
+# authors. We measure each plugin in isolation after the parent chain
+# is loaded, take the min of N runs to drop jitter, and only check
+# under bash and zsh — sh/dash don't load .rc-* and .env-* nearly all
+# guard-and-return under non-zsh/bash. CI gets a much wider tolerance
+# because shared runners spike unpredictably on small workloads.
+@test "per-plugin startup time: each .rc/.env under threshold" {
+  local threshold_ms=10
+  if [ -n "${CI:-}" ]; then
+    threshold_ms=50
+  fi
+
+  local stub_dir="$BATS_TEST_TMPDIR/stubs"
+  mkdir -p "$stub_dir"
+  cat >"$stub_dir/ssh-agent" <<'EOF'
+#!/bin/sh
+exit 0
+EOF
+  chmod +x "$stub_dir/ssh-agent"
+
+  # Pre-populate $HOME/.ssh/agent.env so .rc-ssh's steady-state branch is
+  # exercised (existing agent, kill -0 succeeds) rather than the cold-start
+  # branch which forks ssh-agent. SSH_AGENT_PID points at our own bats
+  # process so kill -0 always works for the test user.
+  mkdir -p "$HOME/.ssh"
+  cat >"$HOME/.ssh/agent.env" <<EOF
+SSH_AGENT_PID=$$; export SSH_AGENT_PID;
+SSH_AUTH_SOCK=/tmp/myrc-test-fake.sock; export SSH_AUTH_SOCK;
+EOF
+  chmod 600 "$HOME/.ssh/agent.env"
+
+  local shell flags preamble failures="" results
+  local runs=3
+
+  for shell in bash zsh; do
+    if ! command -v "$shell" >/dev/null 2>&1; then
+      echo "skip: $shell not installed" >&3
+      continue
+    fi
+
+    case "$shell" in
+      bash)
+        flags="--noprofile --norc"
+        preamble=""
+        ;;
+      zsh)
+        flags="-f"
+        preamble="zmodload zsh/datetime"
+        ;;
+    esac
+
+    # Warm caches with one full chain source.
+    MYRC_DIR="$REPO" PATH="$stub_dir:$PATH" "$shell" $flags \
+      -c "MYRC_DIR='$REPO' . '$REPO/.prep' && . '$REPO/.myrc'" >/dev/null 2>&1
+
+    # Time each plugin individually; print "<name> <ms>" lines.
+    # Each plugin is sourced $runs times in a fresh shell and we
+    # keep the minimum reading.
+    results=$(
+      for i in $(seq 1 "$runs"); do
+        MYRC_DIR="$REPO" PATH="$stub_dir:$PATH" "$shell" $flags -c "
+          $preamble
+          . \"\$MYRC_DIR/.prep\"
+          for f in \"\$MYRC_DIR\"/.rc-* \"\$MYRC_DIR\"/.env-*; do
+            t0=\$EPOCHREALTIME
+            . \"\$f\"
+            t1=\$EPOCHREALTIME
+            awk -v n=\"\${f##*/}\" -v a=\"\$t0\" -v b=\"\$t1\" \
+              'BEGIN { printf \"%s %.0f\n\", n, (b - a) * 1000 }'
+          done
+        " 2>/dev/null
+      done | awk '{
+        if (!($1 in best) || $2 < best[$1]) best[$1] = $2
+      } END {
+        for (n in best) print n, best[n]
+      }' | sort
+    )
+
+    while read -r name ms; do
+      [ -n "$name" ] || continue
+      echo "  $shell $name: ${ms}ms" >&3
+      if [ "$ms" -gt "$threshold_ms" ]; then
+        failures="$failures $shell:$name:${ms}ms"
+      fi
+    done <<<"$results"
   done
 
   if [ -n "$failures" ]; then

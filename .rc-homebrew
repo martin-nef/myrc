@@ -1,2 +1,19 @@
-# shellcheck shell=sh
-[ -x '/opt/homebrew/bin/brew' ] && eval "$(/opt/homebrew/bin/brew shellenv)"
+# shellcheck shell=sh disable=SC1090  # cached shellenv file is dynamic
+[ -x '/opt/homebrew/bin/brew' ] || return
+
+# `brew shellenv` forks brew (~35-180ms). Cache its output and regenerate
+# only when brew itself is newer. The cached file still runs path_helper
+# at source time (~10ms) so it composes correctly with whatever PATH is
+# already in the env when this fragment is sourced.
+_myrc_brew_shellenv() {
+  cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/myrc"
+  cache_file="$cache_dir/brew-shellenv"
+  if [ ! -f "$cache_file" ] || [ /opt/homebrew/bin/brew -nt "$cache_file" ]; then
+    mkdir -p "$cache_dir"
+    /opt/homebrew/bin/brew shellenv >"$cache_file"
+  fi
+  . "$cache_file"
+}
+_myrc_brew_shellenv
+unset -f _myrc_brew_shellenv
+unset cache_dir cache_file
