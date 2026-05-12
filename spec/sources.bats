@@ -30,11 +30,15 @@ parse_in() {
 
 source_chain_in() {
   local shell=$1
+  # MYRC_DIR is exported into the env of the spawned shell rather than
+  # passed as a prefix assignment to `.` — `VAR=val .` only persists
+  # past `.`'s return when `.` is treated as a POSIX special builtin,
+  # which bash and zsh skip in their default (non-POSIX) modes.
   local cmd=". '$REPO/.prep' && . '$REPO/.myenv'"
   case "$shell" in
-    bash) "$shell" --noprofile --norc -c "MYRC_DIR='$REPO' $cmd" ;;
-    zsh) "$shell" -f -c "MYRC_DIR='$REPO' $cmd" ;;
-    *) "$shell" -c "MYRC_DIR='$REPO' $cmd" ;;
+    bash) MYRC_DIR="$REPO" "$shell" --noprofile --norc -c "$cmd" ;;
+    zsh) MYRC_DIR="$REPO" "$shell" -f -c "$cmd" ;;
+    *) MYRC_DIR="$REPO" "$shell" -c "$cmd" ;;
   esac
 }
 
@@ -70,9 +74,11 @@ source_chain_in() {
 
     # End-to-end smoke: prep + myenv chain sources cleanly under
     # this shell, exercising every .env-* via the loop in .myenv.
-    if ! source_chain_in "$shell" >/dev/null 2>&1; then
+    local chain_stderr
+    chain_stderr=$(source_chain_in "$shell" 2>&1 >/dev/null) || {
       failures="$failures $shell:source-chain"
-    fi
+      echo "  $shell source-chain stderr: $chain_stderr" >&2
+    }
   done
 
   if [ -n "$failures" ]; then
@@ -153,16 +159,21 @@ EOF
       *) flags="" ;;
     esac
 
+    local chain=". '$REPO/.prep' && . '$REPO/$entry'"
+    local warmup_stderr
     # Warm the cache once (.rc-flux / .rc-kubectl regenerate completion
     # files on first run). Real users hit this once at install time, not
     # every shell startup — the threshold is for the steady state.
-    PATH="$stub_dir:$PATH" "$shell" $flags \
-      -c "MYRC_DIR='$REPO' . '$REPO/.prep' && . '$REPO/$entry'" \
-      >/dev/null 2>&1
+    warmup_stderr=$(MYRC_DIR="$REPO" PATH="$stub_dir:$PATH" "$shell" $flags \
+      -c "$chain" 2>&1 >/dev/null) || {
+      echo "  $shell warmup stderr: $warmup_stderr" >&2
+      failures="$failures $shell:warmup"
+      continue
+    }
 
     time_s=$(
-      PATH="$stub_dir:$PATH" /usr/bin/time -p "$shell" $flags \
-        -c "MYRC_DIR='$REPO' . '$REPO/.prep' && . '$REPO/$entry'" \
+      MYRC_DIR="$REPO" PATH="$stub_dir:$PATH" /usr/bin/time -p "$shell" $flags \
+        -c "$chain" \
         2>&1 >/dev/null | awk '/^real/ {print $2}'
     )
     time_ms=$(awk "BEGIN { printf \"%.0f\", $time_s * 1000 }")
