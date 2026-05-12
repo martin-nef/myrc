@@ -1,19 +1,39 @@
 # shellcheck shell=bash disable=SC1090  # cached shellenv file is dynamic; -nt requires bash/ksh test
-[ -x '/opt/homebrew/bin/brew' ] || return
+
+# Locate the brew binary across all four standard install paths:
+#   /opt/homebrew/bin/brew                 — macOS Apple Silicon
+#   /usr/local/bin/brew                    — macOS Intel
+#   /home/linuxbrew/.linuxbrew/bin/brew    — Linux, system-wide
+#   $HOME/.linuxbrew/bin/brew              — Linux, per-user
+# brew isn't on PATH yet at this point — that's what shellenv is for —
+# so `command -v` would miss it; check the well-known paths instead.
+brew_bin=""
+for _cand in \
+  /opt/homebrew/bin/brew \
+  /usr/local/bin/brew \
+  /home/linuxbrew/.linuxbrew/bin/brew \
+  "$HOME/.linuxbrew/bin/brew"; do
+  if [ -x "$_cand" ]; then
+    brew_bin=$_cand
+    break
+  fi
+done
+unset _cand
+[ -n "$brew_bin" ] || return
 
 # `brew shellenv` forks brew (~35-180ms). Cache its output and regenerate
 # only when brew itself is newer. The cached file still runs path_helper
-# at source time (~10ms) so it composes correctly with whatever PATH is
+# (macOS) at source time so it composes correctly with whatever PATH is
 # already in the env when this fragment is sourced.
 _myrc_brew_shellenv() {
   cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/myrc"
   cache_file="$cache_dir/brew-shellenv"
-  if [ ! -f "$cache_file" ] || [ /opt/homebrew/bin/brew -nt "$cache_file" ]; then
+  if [ ! -f "$cache_file" ] || [ "$brew_bin" -nt "$cache_file" ]; then
     mkdir -p "$cache_dir"
-    /opt/homebrew/bin/brew shellenv >"$cache_file"
+    "$brew_bin" shellenv >"$cache_file"
   fi
   . "$cache_file"
 }
 _myrc_brew_shellenv
 unset -f _myrc_brew_shellenv
-unset cache_dir cache_file
+unset cache_dir cache_file brew_bin
