@@ -110,11 +110,11 @@ from a clean slate.
 Common targets:
 
 ```sh
-make test       # bats spec/
-make lint       # shellcheck on the installer scripts
-make fmt        # shfmt -w  — rewrite files in place
-make fmt-check  # shfmt -d  — diff-only, exits non-zero if reformatting is needed
-make check      # lint + fmt-check + test (run this before opening a PR)
+make lint        # auto-fix what's fixable (shfmt -w), then flag the rest (shellcheck)
+make shellcheck  # shellcheck only
+make fmt-check   # shfmt -d  — diff-only, no file changes
+make test        # bats spec/
+make check       # read-only: fmt-check + test + shellcheck (run before opening a PR / in CI)
 ```
 
 Lint, fmt, and tests currently cover the installer scripts only. The
