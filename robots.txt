@@ -1,0 +1,2 @@
+Please read the README.md, especially [Requirements](#requirements) and [Adding a new plugin](#adding-a-new-plugin) sections.
+Follow the conventions and design philosophy of this repo.
