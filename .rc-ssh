@@ -21,12 +21,12 @@ fi
 
 copy-private-key() {
   echo ~/.ssh/id_ed25519_"$1"
-  cat ~/.ssh/id_ed25519_"$1" | pbcopy &&
+  pbcopy <~/.ssh/id_ed25519_"$1" &&
     echo "Private key copied to clipboard."
 }
 copy-pub-key() {
   echo ~/.ssh/id_ed25519_"$1".pub
-  cat ~/.ssh/id_ed25519_"$1".pub | pbcopy &&
+  pbcopy <~/.ssh/id_ed25519_"$1".pub &&
     echo "Public key copied to clipboard."
 }
 gen-key() {

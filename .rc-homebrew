@@ -1,4 +1,4 @@
-# shellcheck shell=sh disable=SC1090  # cached shellenv file is dynamic
+# shellcheck shell=bash disable=SC1090  # cached shellenv file is dynamic; -nt requires bash/ksh test
 [ -x '/opt/homebrew/bin/brew' ] || return
 
 # `brew shellenv` forks brew (~35-180ms). Cache its output and regenerate
