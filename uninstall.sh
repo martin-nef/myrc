@@ -19,10 +19,10 @@ strip() {
     $0 == b { skip=1; next }
     skip && $0 == e { skip=0; next }
     !skip { print }
-  ' "$target" > "$tmp"
+  ' "$target" >"$tmp"
 
   # Preserve original permissions.
-  cat "$tmp" > "$target"
+  cat "$tmp" >"$target"
   rm -f "$tmp"
 
   echo "myrc: removed from $target"

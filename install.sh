@@ -38,10 +38,12 @@ inject() {
   {
     printf '\n%s\n' "$BEGIN_MARKER"
     printf 'export MYRC_DIR="%s"\n' "$SCRIPT_DIR"
+    # shellcheck disable=SC2016  # literal $MYRC_DIR is intentional in profile output
     printf '. "$MYRC_DIR/.prep"\n'
+    # shellcheck disable=SC2016
     printf '. "$MYRC_DIR/%s"\n' "$rc_file"
     printf '%s\n' "$END_MARKER"
-  } >> "$target"
+  } >>"$target"
 
   echo "myrc: installed in $target"
   installed_any=1
@@ -50,13 +52,13 @@ inject() {
 # Env files get .myenv (tokens + env-manager plugins). For zsh we use
 # .zshenv because it is sourced by *every* zsh invocation (login/non-login,
 # interactive/non-interactive) — a strict superset of .zprofile.
-inject "$HOME/.profile"      ".myenv"
+inject "$HOME/.profile" ".myenv"
 inject "$HOME/.bash_profile" ".myenv"
-inject "$HOME/.zshenv"       ".myenv"
+inject "$HOME/.zshenv" ".myenv"
 
 # Interactive rc files get .myrc (env + aliases + .rc-* plugins).
-inject "$HOME/.bashrc"       ".myrc"
-inject "$HOME/.zshrc"        ".myrc"
+inject "$HOME/.bashrc" ".myrc"
+inject "$HOME/.zshrc" ".myrc"
 
 if [ "$installed_any" -eq 0 ]; then
   echo "myrc: no existing profile files found under \$HOME."
