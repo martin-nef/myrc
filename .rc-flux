@@ -2,8 +2,7 @@
 command -v flux >/dev/null || return
 
 # flux
-alias k="flux"
-export K_NAMES_ONLY='{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'
+alias deploy-now="flux reconcile kustomization flux-system --with-source"
 
 # `flux completion <shell>` forks the flux binary every shell start.
 # Cache its output; regenerate only when flux is newer than the cache.
