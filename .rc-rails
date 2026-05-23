@@ -10,10 +10,17 @@ db-reset() {
   fi
 }
 
-alias db-migrate="bin/rails db:migrate"
 alias db-seed="bin/rails db:seed"
 alias db-setup="bin/rails db:setup"
 alias db-reseed="db-drop && db-setup && db-migrate && db-seed"
+
+db-migrate() {
+  if [ $# -eq 0 ]; then
+    bin/rails db:migrate
+  else
+    bin/rails "db:migrate:$1"
+  fi
+}
 
 db-rollback() {
   if [ $# -eq 0 ]; then
