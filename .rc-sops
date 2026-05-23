@@ -1,0 +1,4 @@
+
+sops-local() {
+    SOPS_AGE_KEY_FILE=age.agekey sops "$@"
+}
