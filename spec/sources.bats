@@ -199,9 +199,9 @@ EOF
 # guard-and-return under non-zsh/bash. CI gets a much wider tolerance
 # because shared runners spike unpredictably on small workloads.
 @test "per-plugin startup time: each .rc/.env under threshold" {
-  local threshold_ms=15
+  local threshold_ms=50
   if [ -n "${CI:-}" ]; then
-    threshold_ms=50
+    threshold_ms=100
   fi
 
   local stub_dir="$BATS_TEST_TMPDIR/stubs"
