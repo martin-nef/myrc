@@ -1,4 +1,16 @@
+# shellcheck shell=sh
 
-sops-local() {
-    SOPS_AGE_KEY_FILE=age.agekey sops "$@"
+sops_local() {
+  # if no args are provided, and deploy/secret.yaml exists (sh compatible)
+  if [ $# -eq 0 ] && [ -f deploy/secret.yaml ]; then
+    SOPS_AGE_KEY_FILE=age.agekey sops deploy/secret.yaml
+    return
+  fi
+  # if no args are provided and deploy/secrets.yaml exists (sh compatible)
+  if [ $# -eq 0 ] && [ -f deploy/secrets.yaml ]; then
+    SOPS_AGE_KEY_FILE=age.agekey sops deploy/secrets.yaml
+    return
+  fi
+
+  SOPS_AGE_KEY_FILE=age.agekey sops "$@"
 }
